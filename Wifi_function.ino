@@ -12,12 +12,12 @@ void Transmit_string_wifi()
   }
   else if (sens_val[1] && sens_val[0] && !sens_val[2]){
     master.print("A" + String(-sens_val[1]*0.5) + " B" + String(sens_val[1]*0.5)
-    + " C" + String(-sens_val[1]*0.5) + " D" + String(sens_val[1]*0.5) + " ");
+    + " C" + String(-sens_val[1]*0.5) + " D" + String(sens_val[1]*0.75) + " ");
   }
   
   else if (sens_val[0] && sens_val[2] && !sens_val[1]){
     master.print("A" + String(sens_val[0]*0.5) + " B" + String(-sens_val[0]*0.5)
-    + " C" + String(sens_val[0]*0.5) + " D" + String(-sens_val[0]*0.5) + " ");
+    + " C" + String(sens_val[0]*0.5) + " D" + String(-sens_val[0]*0.75) + " ");
   }
   else{
     master.print("A0 B0 C0 D0 ");

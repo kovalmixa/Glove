@@ -17,9 +17,10 @@
 
 #define FOR_3 for (int i = 0; i < 3; i++)
 
+const bool isDebug = false; //Switch to true, if need info during calibration
 const char *ssid = "CAR_WIFI";
 const char *password = "12345678";
-int last_sens_val[3], sens_val[3], PIN_SENS[3] = { 33, 32, 35 }, PIN_LED[3] = { 19, 18, 5 };
+int last_sens_val[3], sens_val[3], stop_val[3], PIN_SENS[3] = { 33, 32, 35 }, PIN_LED[3] = { 19, 18, 5 };
 
 WiFiClient master;
 
@@ -29,11 +30,14 @@ void setup()
   Serial.println("Start!");
   FOR_3 ledcSetup(i, 40000, 8);        // настройка шим для светодиодов (i-канал;40000-частота;8(біт)-разрешение)
   FOR_3 ledcAttachPin(PIN_LED[i], i);  // настройка связи пинов с их каналами
+
+  Setup_sensors();
+  FOR_3 Serial.println(stop_val[i]);
 }
 
 void loop()
 {
-  if(WiFi.status() != WL_CONNECTED){                           // Автоконнект/Реконнект
+  if(WiFi.status() != WL_CONNECTED && !isDebug){                           // Автоконнект/Реконнект
     connectToWiFi();
     connectToServer();
   }
