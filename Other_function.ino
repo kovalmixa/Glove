@@ -3,7 +3,6 @@ void Setup_sensors(){
   delay(3000);
   Enter_and_convert_values();
   FOR_3 stop_val[i] = sens_val[i] + 10;
-  stop_val[0] += 40;
   ledcWrite(0, 0);
 }
 
@@ -24,7 +23,7 @@ void Enter_and_convert_values() // Берем значения с АЦП и пр
       sens_val[i] = map(analogRead(PIN_SENS[i]), 1800, 400, 0, 255);  // Преобрзование значений с одного диапозона в другой
     }
     else{
-      sens_val[i] = map(analogRead(PIN_SENS[0]), 2100, 2000, 0, 255);
+      sens_val[i] = map(analogRead(PIN_SENS[0]), 1850, 1500, 0, 255);
     }
   }
   // FOR_3 sens_val[i] = map(analogRead(PIN_SENS[i]), 1800, 400, 0, 255);
