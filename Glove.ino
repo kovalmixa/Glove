@@ -16,32 +16,27 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-#define FOR_3 for (int i = 0; i < 3; i++)
+#define FOR_N(n) for (int i = 0; i < (n); i++)
 
-const bool isDebug = false; //Switch to true, if need info during calibration
 uint8_t broadcastAddress[] = {0xe0, 0x5a, 0x1b, 0x75, 0x85, 0xc8};
 int stopVals[3] = {0}, PIN_SENS[3] = { 33, 32, 35 }, PIN_LED[3] = { 19, 18, 5 };
 
-typedef struct MotorDataStruct {
-  signed char a;
-  signed char b;
-  signed char c;
-  signed char d;
-  MotorDataStruct(char a, char b, char c, char d) : a(a), b(b), c(c), d(d) {}
-  MotorDataStruct() : a(0), b(0), c(0), d(0) {}
-} MotorDataStruct;
+union MotorData {
+    struct {
+        signed char a, b, c, d;
+    };
+    signed char arr[4];
+};
 
-MotorDataStruct motorData;
+MotorData motorData;
 esp_now_peer_info_t peerInfo;
 
-
-
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(921600);
   Serial.println("Start!");
 
   //sensors and LED setup
-  FOR_3 ledcAttach(PIN_LED[i], 40000, 8); 
+  FOR_N(3) { ledcAttach(PIN_LED[i], 40000, 8); }
 
   WiFi.mode(WIFI_STA);
 
@@ -62,8 +57,9 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
+
   setupStopValues(); 
-  FOR_3 Serial.println(stopVals[i]);
+  FOR_N(3) Serial.println(stopVals[i]);
 }
 
 void loop() {
@@ -74,7 +70,7 @@ void loop() {
   formDataStruct(sensVals);
   trySendData();
 
-  FOR_3 Serial.printf("sensor[%d] = %d\t%d\n", i, sensVals[i], analogRead(PIN_SENS[i]));
-  Serial.printf("motor data: %d,%d,%d,%d", motorData.a, motorData.b, motorData.c, motorData.d);
+  FOR_N(3) Serial.printf("sensor[%d] = %d\t%d\n", i, sensVals[i], analogRead(PIN_SENS[i]));
+  FOR_N(4)Serial.printf("motor[%d]: %d\n", i, motorData.arr[i] + 0);
   delay(100);
 }

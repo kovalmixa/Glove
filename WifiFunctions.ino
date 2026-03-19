@@ -1,13 +1,9 @@
 void formDataStruct(int* vals) {
-  if (!vals[0] && vals[1] && !vals[2])
-    motorData = MotorDataStruct(vals[1], vals[1], vals[1], vals[1]);
-  else if (!vals[0] && !vals[1] && vals[2])
-    motorData = MotorDataStruct(vals[2], vals[2], vals[2], vals[2]);
-  else if (vals[0] && vals[1] && !vals[2])
-    motorData = MotorDataStruct(-vals[0] * 0.5 , vals[0] * 0.5, -vals[0] * 0.5, vals[0] * 0.5);
-  else if (vals[0] && !vals[1] && vals[2])
-    motorData = MotorDataStruct(vals[0] * 0.5 , -vals[0] * 0.5, vals[0] * 0.5, -vals[0] * 0.5);
-  else motorData = MotorDataStruct();
+  if (!vals[0] && vals[1] && !vals[2]) FOR_N(4) motorData.arr[i] = vals[1] / 2;
+  else if (!vals[0] && !vals[1] && vals[2]) FOR_N(4) motorData.arr[i] = -vals[2] / 2;
+  else if (vals[0] && vals[1] && !vals[2]) FOR_N(4) motorData.arr[i] = vals[0] / 4 * (i % 2 ? 1 : -1);
+  else if (vals[0] && !vals[1] && vals[2]) FOR_N(4) motorData.arr[i] = vals[0] / 4 * (i % 2 ? -1 : 1);
+  else FOR_N(4) motorData.arr[i] = 0;
 }
 
 void trySendData() {
