@@ -13,37 +13,68 @@
 средний светодиод мигает когда налажена связь между машинкой и перчаткой и выводит значения шим машинки на светодиоды . 
 */
 
+#include <esp_now.h>
 #include <WiFi.h>
 
 #define FOR_3 for (int i = 0; i < 3; i++)
 
 const bool isDebug = false; //Switch to true, if need info during calibration
-const char *ssid = "CAR_WIFI";
-const char *password = "12345678";
-int last_sens_val[3], sens_val[3], stop_val[3], PIN_SENS[3] = { 33, 32, 35 }, PIN_LED[3] = { 19, 18, 5 };
+uint8_t broadcastAddress[] = {0xe0, 0x5a, 0x1b, 0x75, 0x85, 0xc8};
+int stopVals[3] = {0}, PIN_SENS[3] = { 33, 32, 35 }, PIN_LED[3] = { 19, 18, 5 };
 
-WiFiClient master;
+typedef struct MotorDataStruct {
+  signed char a;
+  signed char b;
+  signed char c;
+  signed char d;
+  MotorDataStruct(char a, char b, char c, char d) : a(a), b(b), c(c), d(d) {}
+  MotorDataStruct() : a(0), b(0), c(0), d(0) {}
+} MotorDataStruct;
 
-void setup()
-{
+MotorDataStruct motorData;
+esp_now_peer_info_t peerInfo;
+
+
+
+void setup() {
   Serial.begin(115200);
   Serial.println("Start!");
-  FOR_3 ledcSetup(i, 40000, 8);        // настройка шим для светодиодов (i-канал;40000-частота;8(біт)-разрешение)
-  FOR_3 ledcAttachPin(PIN_LED[i], i);  // настройка связи пинов с их каналами
 
-  Setup_sensors();
-  FOR_3 Serial.println(stop_val[i]);
+  //sensors and LED setup
+  FOR_3 ledcAttach(PIN_LED[i], 40000, 8); 
+
+  WiFi.mode(WIFI_STA);
+
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_register_send_cb(esp_now_send_cb_t(onDataSent));
+  
+  // Register peer
+  memset(&peerInfo, 0, sizeof(peerInfo));
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+  setupStopValues(); 
+  FOR_3 Serial.println(stopVals[i]);
 }
 
-void loop()
-{
-  if(WiFi.status() != WL_CONNECTED && !isDebug){                           // Автоконнект/Реконнект
-    connectToWiFi();
-    connectToServer();
-  }
-  Enter_and_convert_values();                                  // Ввод c АЦП значений напряжения и преобразование в нужний диапозон для последующей подачи значений машинке
-  Values_per_LED();                                            // Подача значений в виде шим сигнала на светодиод
-  Transmit_string_wifi();                                      // Передаем строку по wifi машинке
-  FOR_3 Serial.printf("sens_val[%d] = %d\t%d\n", i, sens_val[i], analogRead(PIN_SENS[i]));  // Выводим значения в Serial порт
-  delay(50);
+void loop() {
+  int sensVals[3];
+  readSensors(sensVals);
+  writeLEDs(sensVals);
+
+  formDataStruct(sensVals);
+  trySendData();
+
+  FOR_3 Serial.printf("sensor[%d] = %d\t%d\n", i, sensVals[i], analogRead(PIN_SENS[i]));
+  Serial.printf("motor data: %d,%d,%d,%d", motorData.a, motorData.b, motorData.c, motorData.d);
+  delay(100);
 }
