@@ -36,7 +36,7 @@ void setup() {
   Serial.println("Start!");
 
   //sensors and LED setup
-  FOR_N(3) { ledcAttach(PIN_LED[i], 40000, 8); }
+  FOR_N(3) ledcAttach(PIN_LED[i], 40000, 8);
 
   WiFi.mode(WIFI_STA);
 
