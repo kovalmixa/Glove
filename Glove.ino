@@ -12,14 +12,30 @@
 Светодиоды на плате нужны для более удобного управления перчаткой, 
 средний светодиод мигает когда налажена связь между машинкой и перчаткой и выводит значения шим машинки на светодиоды . 
 */
-
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
 #include <esp_now.h>
 #include <WiFi.h>
 
+#define TCAADDR 0x70
+#define NUM_SENSORS 3
+#define NUM_MOTORS 4
+#define SDA 21
+#define SCL 22
+
 #define FOR_N(n) for (int i = 0; i < (n); i++)
 
+const bool IS_CATHODE = true;
+const int MIN_ANGLE = 90;
+const int MAX_ANGLE = 0;
+unsigned long lastCheckTime;
 uint8_t broadcastAddress[] = {0xe0, 0x5a, 0x1b, 0x75, 0x85, 0xc8};
-int stopVals[3] = {0}, PIN_SENS[3] = { 33, 32, 35 }, PIN_LED[3] = { 19, 18, 5 };
+
+const int PIN_LED[NUM_SENSORS] = { 19, 18, 5 };
+Adafruit_MPU6050 mpu[NUM_SENSORS];
+float rolls[NUM_SENSORS];
+int stopVals[NUM_SENSORS] = {0};
 
 union MotorData {
     struct {
@@ -31,15 +47,24 @@ union MotorData {
 MotorData motorData;
 esp_now_peer_info_t peerInfo;
 
+void tcaselect(uint8_t i) {
+  if (i > 7) return;
+  Wire.beginTransmission(TCAADDR);
+  Wire.write(1 << i);
+  Wire.endTransmission();
+}
+
 void setup() {
   Serial.begin(921600);
   Serial.println("Start!");
 
+  Wire.begin(SDA, SCL);   //I2C setup
+  mpuSetup();
+
   //sensors and LED setup
-  FOR_N(3) ledcAttach(PIN_LED[i], 40000, 8);
+  FOR_N(NUM_SENSORS) ledcAttach(PIN_LED[i], 40000, 8);
 
   WiFi.mode(WIFI_STA);
-
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
@@ -58,19 +83,21 @@ void setup() {
     return;
   }
 
-  setupStopValues(); 
-  FOR_N(3) Serial.println(stopVals[i]);
+  setupStopValues(3000); 
+  FOR_N(NUM_SENSORS) Serial.printf("stop value[%d] = %d\troll[%d] = %f\n", i, stopVals[i], i, rolls[i]);
 }
 
 void loop() {
-  int sensVals[3];
+  int sensVals[NUM_SENSORS];
   readSensors(sensVals);
-  writeLEDs(sensVals);
+  writeLeds(sensVals);
 
   formDataStruct(sensVals);
   trySendData();
 
-  FOR_N(3) Serial.printf("sensor[%d] = %d\t%d\n", i, sensVals[i], analogRead(PIN_SENS[i]));
-  FOR_N(4)Serial.printf("motor[%d]: %d\n", i, motorData.arr[i] + 0);
+  //for sens values
+  FOR_N(NUM_SENSORS) Serial.printf("sensor value[%d] = %d\troll[%d] = %f\n", i, sensVals[i], i, rolls[i]);
+  //for motors
+  // FOR_N(NUM_MOTORS)Serial.printf("motor[%d]: %d\n", i, motorData.arr[i] + 0);
   delay(100);
 }
